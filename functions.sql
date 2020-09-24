@@ -4,5 +4,5 @@ create or replace function get_user_current_charge(userid int) returns real lang
 
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-create or replace function login(userid int) returns void language plpgsql as $$ begin insert into sessions values(userid, (jsonb_build_object('uuid', uuid_generate_v4()::text) || jsonb_build_object('login_time', current_timestamp))::json); end; $$;
+te or replace function login(userid int) returns void language plpgsql as $$ begin insert into sessions values(userid, (jsonb_build_object('uuid', uuid_generate_v4()::text) || jsonb_build_object('login_time', current_timestamp) || jsonb_build_object('expiration_time', current_timestamp +  interval '5h'))::json); end; $$;
 
