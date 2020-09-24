@@ -3,14 +3,13 @@ CREATE TABLE users(
    user_name VARCHAR(255) NOT NULL,
    phone_number VARCHAR(255) NOT NULL,
    email VARCHAR(255) NOT NULL,
-   charge INT DEFAULT 0,
    PRIMARY KEY(user_id)
 );
 
-CREATE TABLE payment(
+CREATE TABLE payments(
    payment_id INT GENERATED ALWAYS AS IDENTITY,
    user_id INT,
-   pay_date date NOT NULL,
+   pay_date TIMESTAMP NOT NULL,
    credit INT NOT NULL,
    PRIMARY KEY(payment_id),
    CONSTRAINT fk_users
@@ -24,7 +23,8 @@ CREATE TABLE servers(
    disk INT NOT NULL,
    ram INT NOT NULL,
    cpu INT NOT NULL,
-   situation VARCHAR(255) NOT NULL,
+   category VARCHAR(255) NOT NULL,
+   crashed BOOLEAN NOT NULL DEFAULT FALSE, 
    PRIMARY KEY(server_id)
 );
 
@@ -32,12 +32,12 @@ CREATE TABLE orders(
    order_id INT GENERATED ALWAYS AS IDENTITY,
    user_id INT,
    server_id INT,
-   start_date date NOT NULL,
-   end_date date NOT NULL,
+   start_date TIMESTAMP NOT NULL,
+   end_date TIMESTAMP NOT NULL,
    cpu_requested INT NOT NULL,
    ram_requested INT NOT NULL,
    disk_requested INT NOT NULL,
-   bandwith_requested real NOT NULL,
+   bandwidth_requested real NOT NULL,
    PRIMARY KEY(order_id),
    CONSTRAINT fk_user_server
       FOREIGN KEY(user_id) 
@@ -46,40 +46,11 @@ CREATE TABLE orders(
 	  REFERENCES servers(server_id)
 );
 
-
-CREATE TABLE supporters(
-   supporter_id INT GENERATED ALWAYS AS IDENTITY,
+CREATE TABLE sessions(
    user_id INT,
-   server_id INT,
-   situation VARCHAR(255) NOT NULL,
-   PRIMARY KEY(supporter_id),
-   CONSTRAINT fk_servs
-      FOREIGN KEY(server_id) 
-	  REFERENCES servers(server_id)
+   info JSON NOT NULL,
+   CONSTRAINT fk_user_server
+   FOREIGN KEY(user_id)
+      REFERENCES users(user_id)
 );
 
-
-
-_________________________________________________
-procedures:
-
-create 
-or replace procedure crashed_servers() language plpgsql as $$ begin
-DELETE FROM public.servers
-WHERE servers.situation = 'crashed';
-commit;
-end;
-$$
-
-CALL public.crashed_servers(); 
-
-
-create 
-or replace procedure delete_supporter() language plpgsql as $$ begin
-UPDATE public.supporters 
-SET server_id = NULL
-FROM servers
-WHERE public.supporters.server_id = public.servers.server_id and public.servers.situation = 'crashed';
-commit;
-end;
-$$
