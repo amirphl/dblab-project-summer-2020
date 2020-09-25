@@ -1,0 +1,67 @@
+CREATE TRIGGER check_session_login BEFORE INSERT ON public.sessions
+FOR EACH ROW EXECUTE PROCEDURE login_to_session();
+
+
+
+CREATE OR REPLACE FUNCTION login_to_session() RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE expi TIMESTAMP;
+   BEGIN
+		IF EXISTS (SELECT info -> 'expiration' AS ex
+		FROM sessions
+		where new.user_id = user_id) then
+		SELECT info -> 'expiration' AS ex
+		into expi
+		FROM sessions
+		where new.user_id = user_id
+		ORDER BY info ->> 'expiration' DESC limit 1;
+if expi < CURRENT_TIMESTAMP then
+		raise notice'expiration is % so the user added successfully',
+       		expi;
+	   return new;
+else
+raise notice'expiration is % then user is already loged in', 
+	    expi;
+        return NULL;
+  end if;
+  END IF;
+  return new;
+   		END;
+$$
+
+
+
+_______________________________________________________________________
+
+
+CREATE TRIGGER check_order BEFORE INSERT ON public.orders
+FOR EACH ROW EXECUTE PROCEDURE check_sessions_orders();
+
+CREATE OR REPLACE FUNCTION check_sessions_orders() RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE expi TIMESTAMP;
+   BEGIN
+   IF EXISTS (SELECT info -> 'expiration' AS ex
+		FROM sessions
+		where new.user_id = user_id) then
+		SELECT info -> 'expiration' AS ex
+		into expi
+		FROM sessions
+		where new.user_id = user_id
+		ORDER BY info ->> 'expiration' DESC limit 1;
+if expi < CURRENT_TIMESTAMP then
+		raise notice'expiration is % so user is loged out and order failed',
+       		expi;
+	   return NULL;
+else
+raise notice'expiration is % so order added successfully', 
+	    expi;
+        return new;
+  end if;
+  END IF;
+  return NULL;
+   
+   END;
+$$
