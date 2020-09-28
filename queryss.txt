@@ -1,0 +1,44 @@
+
+
+create or replace function notif_crash() returns table(username VARCHAR(255), user_id int, phone_number VARCHAR(255), email VARCHAR(255), crashed boolean) language plpgsql as $$
+begin 
+return query   
+select u.user_name,u.user_id,u.phone_number,u.email,s.crashed
+from users u
+INNER JOIN orders o 
+    ON o.user_id = u.user_id
+	INNER JOIN servers s 
+    ON o.server_id = s.server_id
+	GROUP BY u.user_id,o.order_id,s.server_id
+	HAVING s.crashed = true;
+end; $$;
+
+create or replace function total_orders() returns table(order_id int, server_id int, sum real) language plpgsql as $$
+begin 
+return query 
+select public.orders.order_id, public.orders.server_id, sum(public.get_cost( cpu_requested, ram_requested, disk_requested, bandwidth_requested, start_date, end_date)) OVER (PARTITION BY public.orders.server_id)
+from orders
+where current_timestamp - interval '30 days' < start_date;
+end; $$;
+
+
+create or replace function sold_category_crashed() returns table(category VARCHAR(255), crashed Boolean, sum real) language plpgsql as $$
+begin 
+return query 
+select servers.category, servers.crashed, sum(public.get_cost( orders.cpu_requested, orders.ram_requested, orders.disk_requested, orders.bandwidth_requested, orders.start_date, orders.end_date))
+from servers
+INNER JOIN orders
+ON servers.server_id = orders.server_id
+GROUP BY cube(servers.category, servers.crashed)
+having servers.crashed is not null and servers.category is not null;
+end; $$;
+
+
+
+create or replace function loged_in_less_than() returns table(userid int, theInfo JSON) language plpgsql as $$
+begin 
+return query 
+SELECT *
+FROM sessions
+where TO_TIMESTAMP(info ->> 'expiration', 'YYYY-MM-DD') > current_timestamp and -1.7673054e+12 < public.get_user_current_charge(user_id)
+end; $$;
