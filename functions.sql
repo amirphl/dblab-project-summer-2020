@@ -18,3 +18,5 @@ create or replace function is_order_valid(serverid int, userid int, requested_cp
 
 create or replace function verify_order() returns trigger language plpgsql as $$ begin if is_order_valid(new.server_id, new.user_id, new.cpu_requested, new.ram_requested, new.disk_requested, new.bandwidth_requested, new.start_date, new.end_date) then return new; else return null; end if; end; $$;
 
+create or replace function check_user_logged_in() returns trigger language plpgsql as $$ declare exp_time timestamp; begin if exists(select info -> 'expiration_time' from sessions where new.user_id = user_id) then select info -> 'expiration_time' into exp_time from sessions where new.user_id = user_id order by info ->> 'expiration_time' desc limit 1; if exp_time < current_timestamp then return null; else return new; end if; end if; return null; end; $$;
+
