@@ -20,3 +20,6 @@ create or replace function verify_order() returns trigger language plpgsql as $$
 
 create or replace function check_user_logged_in() returns trigger language plpgsql as $$ declare exp_time timestamp; begin if exists(select info -> 'expiration_time' from sessions where new.user_id = user_id) then select info -> 'expiration_time' into exp_time from sessions where new.user_id = user_id order by info ->> 'expiration_time' desc limit 1; if exp_time < current_timestamp then return null; else return new; end if; end if; return null; end; $$;
 
+create or replace function check_user_logged_out() returns trigger language plpgsql as $$ declare exp_time timestamp; begin if exists(select info -> 'expiration_time' from sessions where new.user_id = user_id) then select info -> 'expiration_time' into exp_time from sessions where new.user_id = user_id order by info ->> 'expiration_time' desc limit 1; if exp_time < current_timestamp then return new; else return null; end if; end if; return new; end; $$;
+
+
